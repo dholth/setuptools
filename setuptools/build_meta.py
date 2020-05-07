@@ -233,12 +233,17 @@ class _BuildMetaBackend(object):
                                          '.tar.gz', sdist_directory,
                                          config_settings)
 
-    def build_editable(self, config_settings=None):
+    def build_editable(self, metadata_directory, target_directory, config_settings=None):
         sys.argv = sys.argv[:1] + ['develop', '--no-install']
         tsr = TrapSetupReturn()
         with tsr.patch():
             self.run_setup()
-        return {'src_root': tsr.dist.command_obj['develop'].egg_base}
+        src_root = tsr.dist.command_obj['develop'].egg_base
+        # put .pth file in metadata_directory
+        egg_name = tsr.dist.command_obj['egg_info'].egg_name
+        with open(os.path.join(metadata_directory, egg_name + '.pth'), 'w+') as pthfile:
+            pth_path = os.path.relpath(os.path.abspath(src_root), target_directory)
+            pthfile.write(os.path.relpath(pth_path + '\n'))
 
 class _BuildMetaLegacyBackend(_BuildMetaBackend):
     """Compatibility backend for setuptools
